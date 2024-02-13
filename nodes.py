@@ -36,11 +36,12 @@ class DiffusersStableCascade:
 
         device = comfy.model_management.get_torch_device()
 
-        prior = StableCascadePriorPipeline.from_pretrained("stabilityai/stable-cascade-prior", torch_dtype=torch.bfloat16).to(device)
-        decoder = StableCascadeDecoderPipeline.from_pretrained("stabilityai/stable-cascade",  torch_dtype=torch.float16).to(device)
+        if not hasattr(self, 'prior') or not hasattr(self, 'decoder'):
 
+            self.prior = StableCascadePriorPipeline.from_pretrained("stabilityai/stable-cascade-prior", torch_dtype=torch.bfloat16).to(device)
+            self.decoder = StableCascadeDecoderPipeline.from_pretrained("stabilityai/stable-cascade",  torch_dtype=torch.float16).to(device)
 
-        prior_output = prior(
+        prior_output = self.prior(
             prompt=prompt,
             height=height,
             width=width,
@@ -49,7 +50,7 @@ class DiffusersStableCascade:
             num_images_per_prompt=batch_size,
             num_inference_steps=steps
         )
-        decoder_output = decoder(
+        decoder_output = self.decoder(
             image_embeddings=prior_output.image_embeddings.half(),
             prompt=prompt,
             negative_prompt=negative_prompt,
