@@ -1,0 +1,1 @@
+-e git+https://github.com/kashif/diffusers.git@wuerstchen-v3#egg=diffusers
