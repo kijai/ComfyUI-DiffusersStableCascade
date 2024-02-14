@@ -10,9 +10,9 @@ script_directory = os.path.dirname(os.path.abspath(__file__))
 class DiffusersStableCascade:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": { 
-            "width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 8}),
-            "height": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 8}),
+        return {"required": {
+            "width": ("INT", {"default": 512, "min": 128, "max": 8192, "step": 128}),
+            "height": ("INT", {"default": 512, "min": 128, "max": 8192, "step": 128}),
             "seed": ("INT", {"default": 123,"min": 0, "max": 0xffffffffffffffff, "step": 1}),
             "guidance_scale": ("FLOAT", {"default": 4.0, "min": 0.01, "max": 100.0, "step": 0.01}),
             "steps": ("INT", {"default": 20, "min": 1, "max": 4096, "step": 1}),
@@ -21,15 +21,18 @@ class DiffusersStableCascade:
             "prompt": ("STRING", {"multiline": True, "default": "",}),
             "negative_prompt": ("STRING", {"multiline": True, "default": "",}),
             },
+            "optional": {
+               "image": ("IMAGE", ),
+            }
             }
     
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE", "IMAGE",)
     RETURN_NAMES =("image",)
     FUNCTION = "process"
 
     CATEGORY = "DiffusersStableCascade"
 
-    def process(self, width, height, seed, steps, guidance_scale, prompt, negative_prompt, batch_size, decoder_steps):
+    def process(self, width, height, seed, steps, guidance_scale, prompt, negative_prompt, batch_size, decoder_steps, image=None):
         
         comfy.model_management.unload_all_models()
         torch.manual_seed(seed)
@@ -42,6 +45,7 @@ class DiffusersStableCascade:
             self.decoder = StableCascadeDecoderPipeline.from_pretrained("stabilityai/stable-cascade",  torch_dtype=torch.float16).to(device)
 
         prior_output = self.prior(
+            image=image,
             prompt=prompt,
             height=height,
             width=width,
@@ -63,7 +67,7 @@ class DiffusersStableCascade:
         batch_tensor = torch.stack(tensors).permute(0, 2, 3, 1).cpu()
         
         
-        return (batch_tensor,)
+        return (batch_tensor,image)
 
 
 NODE_CLASS_MAPPINGS = {
