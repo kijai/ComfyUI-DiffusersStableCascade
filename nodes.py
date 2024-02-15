@@ -21,18 +21,16 @@ class DiffusersStableCascade:
             "prompt": ("STRING", {"multiline": True, "default": "",}),
             "negative_prompt": ("STRING", {"multiline": True, "default": "",}),
             },
-            "optional": {
-               "image": ("IMAGE", ),
-            }
+            
             }
     
-    RETURN_TYPES = ("IMAGE", "IMAGE",)
+    RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES =("image",)
     FUNCTION = "process"
 
     CATEGORY = "DiffusersStableCascade"
 
-    def process(self, width, height, seed, steps, guidance_scale, prompt, negative_prompt, batch_size, decoder_steps, image=None):
+    def process(self, width, height, seed, steps, guidance_scale, prompt, negative_prompt, batch_size, decoder_steps):
         
         comfy.model_management.unload_all_models()
         torch.manual_seed(seed)
@@ -42,10 +40,11 @@ class DiffusersStableCascade:
         if not hasattr(self, 'prior') or not hasattr(self, 'decoder'):
 
             self.prior = StableCascadePriorPipeline.from_pretrained("stabilityai/stable-cascade-prior", torch_dtype=torch.bfloat16).to(device)
+            self.prior.enable_model_cpu_offload()
             self.decoder = StableCascadeDecoderPipeline.from_pretrained("stabilityai/stable-cascade",  torch_dtype=torch.float16).to(device)
+            self.decoder.enable_model_cpu_offload()
 
         prior_output = self.prior(
-            image=image,
             prompt=prompt,
             height=height,
             width=width,
@@ -67,7 +66,7 @@ class DiffusersStableCascade:
         batch_tensor = torch.stack(tensors).permute(0, 2, 3, 1).cpu()
         
         
-        return (batch_tensor,image)
+        return (batch_tensor,)
 
 
 NODE_CLASS_MAPPINGS = {
