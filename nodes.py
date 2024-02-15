@@ -20,6 +20,7 @@ class DiffusersStableCascade:
             "batch_size": ("INT", {"default": 1, "min": 1, "max": 4096, "step": 1}),
             "prompt": ("STRING", {"multiline": True, "default": "",}),
             "negative_prompt": ("STRING", {"multiline": True, "default": "",}),
+            "model_cpu_offload": ("BOOLEAN", {"default": False}),
             },
             
             }
@@ -30,7 +31,7 @@ class DiffusersStableCascade:
 
     CATEGORY = "DiffusersStableCascade"
 
-    def process(self, width, height, seed, steps, guidance_scale, prompt, negative_prompt, batch_size, decoder_steps):
+    def process(self, width, height, seed, steps, guidance_scale, prompt, negative_prompt, batch_size, decoder_steps, model_cpu_offload):
         
         comfy.model_management.unload_all_models()
         torch.manual_seed(seed)
@@ -40,9 +41,10 @@ class DiffusersStableCascade:
         if not hasattr(self, 'prior') or not hasattr(self, 'decoder'):
 
             self.prior = StableCascadePriorPipeline.from_pretrained("stabilityai/stable-cascade-prior", torch_dtype=torch.bfloat16).to(device)
-            self.prior.enable_model_cpu_offload()
             self.decoder = StableCascadeDecoderPipeline.from_pretrained("stabilityai/stable-cascade",  torch_dtype=torch.float16).to(device)
-            self.decoder.enable_model_cpu_offload()
+            if model_cpu_offload:
+                self.prior.enable_model_cpu_offload()
+                self.decoder.enable_model_cpu_offload()
 
         prior_output = self.prior(
             prompt=prompt,
